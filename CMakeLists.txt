@@ -1,65 +1,62 @@
-cmake_minimum_required(VERSION 3.22)
-project(CZ5000VST VERSION 0.1.0)
+name: Build CZ5000VST
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set_property(GLOBAL PROPERTY USE_FOLDERS YES)
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
-# JUCE wird automatisch via CMake FetchContent heruntergeladen.
-# Internetzugang beim Konfigurieren (cmake -B build) ist dafuer noetig.
-include(FetchContent)
-FetchContent_Declare(
-    JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.15
-    GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(JUCE)
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
-juce_add_plugin(CZ5000VST
-    COMPANY_NAME             "YourCompany"
-    PLUGIN_MANUFACTURER_CODE Yman
-    PLUGIN_CODE              Cz50
-    FORMATS                  VST3 Standalone
-    PRODUCT_NAME             "CZ-5000 Virtual"
-    IS_SYNTH                 TRUE
-    NEEDS_MIDI_INPUT         TRUE
-    NEEDS_MIDI_OUTPUT        TRUE
-    IS_MIDI_EFFECT           FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-    COPY_PLUGIN_AFTER_BUILD  TRUE
-    VST3_CATEGORIES          Instrument Synth
-)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-juce_generate_juce_header(CZ5000VST)
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libjack-jackd2-dev \
+            ladspa-sdk \
+            libcurl4-openssl-dev \
+            libfreetype6-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev \
+            libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libwebkit2gtk-4.1-dev \
+            libglu1-mesa-dev mesa-common-dev
 
-target_sources(CZ5000VST PRIVATE
-    Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp
-    Source/Parameters.cpp
-    Source/DSP/CZVoice.cpp
-    Source/MIDI/CZSysEx.cpp
-    Source/GUI/HardwarePanel.cpp
-)
+      - name: Configure CMake
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.15"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
 
-target_include_directories(CZ5000VST PRIVATE Source)
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
-target_compile_definitions(CZ5000VST
-    PUBLIC
-        JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0
-        JUCE_VST3_CAN_REPLACE_VST2=0
-        JUCE_DISPLAY_SPLASH_SCREEN=0
-)
+      - name: Upload VST3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CZ5000VST-VST3-${{ matrix.os }}
+          path: |
+            build/**/*.vst3
+            build/**/VST3/**
+          if-no-files-found: ignore
 
-target_link_libraries(CZ5000VST
-    PRIVATE
-        juce::juce_audio_utils
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_gui_extra
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags
-)
+      - name: Upload Standalone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CZ5000VST-Standalone-${{ matrix.os }}
+          path: |
+            build/**/Standalone/**
+            build/**/*.app
+            build/**/*.exe
+          if-no-files-found: ignore
