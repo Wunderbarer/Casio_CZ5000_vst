@@ -1,0 +1,25 @@
+# Build directories
+Builds/
+Build/
+build/
+cmake-build-*/
+_deps/
+out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+.idea/
+DerivedData/
+*.xcworkspace
+*.xcodeproj/xcuserdata/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# JUCE (wird per FetchContent heruntergeladen, nicht einchecken)
+JuceLibraryCode/
