@@ -35,7 +35,9 @@ jobs:
             libglu1-mesa-dev mesa-common-dev
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.15"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
 
       - name: Build
         run: cmake --build build --config Release --parallel
