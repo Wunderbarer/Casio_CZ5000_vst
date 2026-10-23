@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout
@@ -35,9 +35,7 @@ jobs:
             libglu1-mesa-dev mesa-common-dev
 
       - name: Configure CMake
-        env:
-          MACOSX_DEPLOYMENT_TARGET: "10.15"
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release --parallel
